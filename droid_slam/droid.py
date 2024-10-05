@@ -12,6 +12,8 @@ from trajectory_filler import PoseTrajectoryFiller
 from collections import OrderedDict
 from torch.multiprocessing import Process
 
+from base.parse_config import ConfigParser
+from utils import load_model
 
 class Droid:
     def __init__(self, args):
@@ -20,6 +22,14 @@ class Droid:
         self.args = args
         self.disable_vis = args.disable_vis
 
+        # MVS Former Model
+        if args.resume is not None:
+            config = ConfigParser.from_args(args, mkdir=False)
+            self.model = load_model(config)
+            self.model.eval()
+        else:
+            self.model = None
+
         # store images, depth, poses, intrinsics (shared between processes)
         self.video = DepthVideo(args.image_size, args.buffer, stereo=args.stereo)
 
@@ -27,7 +37,8 @@ class Droid:
         self.filterx = MotionFilter(self.net, self.video, thresh=args.filter_thresh)
 
         # frontend process
-        self.frontend = DroidFrontend(self.net, self.video, self.args)
+        # self.frontend = DroidFrontend(self.net, self.video, self.args)
+        self.frontend = DroidFrontend(self.net, self.video, self.args, self.model)
         
         # backend process
         self.backend = DroidBackend(self.net, self.video, self.args)

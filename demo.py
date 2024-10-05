@@ -103,7 +103,25 @@ if __name__ == '__main__':
     parser.add_argument("--backend_nms", type=int, default=3)
     parser.add_argument("--upsample", action="store_true")
     parser.add_argument("--reconstruction_path", help="path to saved reconstruction")
+
+    # MVS Former arguments
+    parser.add_argument('--model', default='mvsnet', help='select model')
+    parser.add_argument('--device', default='0', type=str, help='indices of GPUs to enable (default: all)')
+    parser.add_argument('--config', default=None, type=str, help='config file path (default: None)')
+    parser.add_argument('--resume', default=None, help='load a specific checkpoint')
+    parser.add_argument('--depth_fusion_size', default=[384, 512], type=int, nargs='+', help='size of depth map for fusion')
+    parser.add_argument('--exp_name', type=str, default=None)
+    parser.add_argument('--tmps', default="5.0,5.0,5.0,1.0", type=str)
+
     args = parser.parse_args()
+
+    if __debug__:
+        args.imagedir = '/home/jungyu/Desktop/datasets/replica/office0/RGB'
+        args.calib = '/home/jungyu/Desktop/SLAM/DROID-SLAM/calib/replica.txt'
+        args.weights = 'weights/droid.pth' 
+        args.tmp = [float(a) for a in args.tmps.split(',')]
+
+        args.resume = "/home/jungyu/Desktop/SLAM/DROID-SLAM/weights/dtu_ckpt/model_best.pth"
 
     args.stereo = False
     torch.multiprocessing.set_start_method('spawn')
