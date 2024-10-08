@@ -37,8 +37,8 @@ class Droid:
         self.filterx = MotionFilter(self.net, self.video, thresh=args.filter_thresh)
 
         # frontend process
-        # self.frontend = DroidFrontend(self.net, self.video, self.args)
-        self.frontend = DroidFrontend(self.net, self.video, self.args, self.model)
+        self.frontend = DroidFrontend(self.net, self.video, self.args)
+        # self.frontend = DroidFrontend(self.net, self.video, self.args, self.model)
         
         # backend process
         self.backend = DroidBackend(self.net, self.video, self.args)
@@ -94,7 +94,40 @@ class Droid:
         torch.cuda.empty_cache()
         print("#" * 32)
         self.backend(12)
-
+        
         camera_trajectory = self.traj_filler(stream)
         return camera_trajectory.inv().data.cpu().numpy()
+    
+    def mvs_formerplusplus(self):
+        """terminate the visualization process, init mvsformer++"""
+        del self.frontend
+
+        torch.cuda.empty_cache()
+        print("#" * 32)
+        self.backend(7)
+
+        torch.cuda.empty_cache()
+        print("#" * 32)
+        self.backend(12)
+        
+        # Create Refined Depth Map
+        from utils import model_loader
+        from lietorch import SE3
+
+        length = torch.sum(self.video.tstamp > 0)
+        # for idx in range(1, length+1):
+        #     with torch.cuda.amp.autocast(dtype=torch.bfloat16): #dtype=torch.bfloat16
+        #         poses = SE3(self.video.poses[idx]).matrix()
+        #         images, proj_matrices, depth_values = model_loader(self.args, tstamps, poses, self.video.disps[ref_id])
+        #         result_pkg = self.model.forward(imgs, cam_params, sample_cuda['depth_values'], tmp=tmp)
+
+
+        outputs = { 'poses' : self.video.poses.clone(),
+                    'tstamp' : self.video.tstamp.clone(),
+                    'intrinsics' : self.video.intrinsics.clone(),
+                    'depth' : self.video.disps.clone() }
+        return outputs
+    
+    def gaussian_training(self, tstamp, image, depth=None, intrinsics=None):
+        """ Updated soon """
 

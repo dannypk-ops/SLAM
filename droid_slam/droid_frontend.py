@@ -8,11 +8,11 @@ from factor_graph import FactorGraph
 from utils import model_loader
 
 class DroidFrontend:
-    def __init__(self, net, video, args, model):
+    def __init__(self, net, video, args):
         self.video = video
         self.update_op = net.update
         self.graph = FactorGraph(video, net.update, max_factors=48, upsample=args.upsample)
-        self.model = model
+        # self.model = model
         self.args = args
 
         # local optimization window
@@ -37,7 +37,7 @@ class DroidFrontend:
 
     def __update(self):
         """ add edges, perform update """
-        is_keyframe_removed = False
+        # is_keyframe_removed = False
         self.count += 1
         self.t1 += 1
 
@@ -59,7 +59,7 @@ class DroidFrontend:
 
         if d.item() < self.keyframe_thresh:
             self.graph.rm_keyframe(self.t1 - 2)
-            is_keyframe_removed = True
+            # is_keyframe_removed = True
             
             with self.video.get_lock():
                 self.video.counter.value -= 1
@@ -69,25 +69,17 @@ class DroidFrontend:
             for itr in range(self.iters2):
                 self.graph.update(None, None, use_inactive=True)
 
-        if not is_keyframe_removed:
-            i = 3
-            ref_id, src_ids = self.t1 - i, [self.t1-i-2, self.t1-i-1, self.t1-i+1, self.t1-i+2]
-            img_ids = [ref_id] + src_ids
-            poses = SE3(self.video.poses[img_ids]).matrix()
-            tstamps = self.video.tstamp[img_ids]
-            images, proj_matrices, depth_values = model_loader(self.args, tstamps, poses, self.video.disps[ref_id])
-            output = self.model(images, proj_matrices, depth_values, tmp=self.args.tmp)
-            final_depth = output['refined_depth']
-            final_depth[final_depth > 5] = 0
-            final_depth[final_depth < 0] = 0
-
-            # import matplotlib.pyplot as plt
-            # from PIL import Image
-            # # plt.imshow(final_depth[0].detach().cpu().numpy())
-            # image = Image.fromarray((final_depth[0].detach().cpu().numpy() * 255).astype(np.uint8))
-            # image.save(f'/home/jungyu/Desktop/a/{self.t1}.png')
-
-            
+        # if not is_keyframe_removed:
+        #     i = 3
+        #     ref_id, src_ids = self.t1 - i, [self.t1-i-2, self.t1-i-1, self.t1-i+1, self.t1-i+2]
+        #     img_ids = [ref_id] + src_ids
+        #     poses = SE3(self.video.poses[img_ids]).matrix()
+        #     tstamps = self.video.tstamp[img_ids]
+        #     images, proj_matrices, depth_values = model_loader(self.args, tstamps, poses, self.video.disps[ref_id])
+        #     output = self.model(images, proj_matrices, depth_values, tmp=self.args.tmp)
+        #     final_depth = output['refined_depth']
+        #     final_depth[final_depth > 5] = 0
+        #     final_depth[final_depth < 0] = 0
 
         # set pose for next itration
         self.video.poses[self.t1] = self.video.poses[self.t1-1]

@@ -149,4 +149,5 @@ if __name__ == '__main__':
     if args.reconstruction_path is not None:
         save_reconstruction(droid, args.reconstruction_path)
 
-    traj_est = droid.terminate(image_stream(args.imagedir, args.calib, args.stride))
+    # traj_est = droid.terminate(image_stream(args.imagedir, args.calib, args.stride))
+    droid.mvs_formerplusplus()
