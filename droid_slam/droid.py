@@ -109,23 +109,38 @@ class Droid:
         torch.cuda.empty_cache()
         print("#" * 32)
         self.backend(12)
-        
+
         # Create Refined Depth Map
         from utils import model_loader
         from lietorch import SE3
 
-        length = torch.sum(self.video.tstamp > 0)
-        # for idx in range(1, length+1):
-        #     with torch.cuda.amp.autocast(dtype=torch.bfloat16): #dtype=torch.bfloat16
-        #         poses = SE3(self.video.poses[idx]).matrix()
-        #         images, proj_matrices, depth_values = model_loader(self.args, tstamps, poses, self.video.disps[ref_id])
-        #         result_pkg = self.model.forward(imgs, cam_params, sample_cuda['depth_values'], tmp=tmp)
-
+        depth_List = []
+        length = torch.sum(self.video.tstamp > 0) # 90
+        for idx in range(1, length+1):
+            if idx == 0:
+                ref_id , src_ids = idx, [idx+1, idx+2, idx+3, idx+4]
+            elif idx == 1:
+                ref_id , src_ids = idx, [idx-1, idx+1, idx+2, idx+3]
+            elif idx == length - 1:
+                ref_id , src_ids = idx, [idx-3, idx-2, idx-1, idx+1]
+            elif idx == length:
+                ref_id , src_ids = idx, [idx-4, idx-3, idx-2, idx-1]
+            else:
+                ref_id , src_ids = idx, [idx-2, idx-1, idx+1, idx+2]
+            img_ids = [ref_id] + src_ids
+            poses = SE3(self.video.poses[img_ids]).matrix()
+            tstamps = self.video.tstamp[img_ids]
+            images, proj_matrices, depth_values = model_loader(self.args, tstamps, poses, self.video.disps[ref_id])
+            with torch.cuda.amp.autocast(dtype=torch.bfloat16): #dtype=torch.bfloat16
+                result_pkg = self.model.forward(images, proj_matrices, depth_values, tmp=self.args.tmp)
+                refiened_depth = result_pkg['refined_depth'].squeeze() # [384, 512]
+                depth_List.append(refiened_depth)
 
         outputs = { 'poses' : self.video.poses.clone(),
                     'tstamp' : self.video.tstamp.clone(),
                     'intrinsics' : self.video.intrinsics.clone(),
-                    'depth' : self.video.disps.clone() }
+                    'depth' : depth_List }
+        
         return outputs
     
     def gaussian_training(self, tstamp, image, depth=None, intrinsics=None):

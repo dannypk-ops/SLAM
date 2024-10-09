@@ -16,6 +16,8 @@ from droid import Droid
 
 import torch.nn.functional as F
 
+import warnings
+warnings.filterwarnings("ignore")
 
 def show_image(image):
     image = image.permute(1, 2, 0).cpu().numpy()
@@ -151,3 +153,4 @@ if __name__ == '__main__':
 
     # traj_est = droid.terminate(image_stream(args.imagedir, args.calib, args.stride))
     droid.mvs_formerplusplus()
+    del droid.video
